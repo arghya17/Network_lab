@@ -9,6 +9,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <netdb.h>
+#include <pthread.h>
+
 using namespace std;
 #define PORT "4000" //port users will be connecting to 
 
@@ -26,6 +28,14 @@ void * get_in_address(struct sockaddr * sa)
 
 }
 
+void* chat(void *var){
+    int newfd=*((int *)var);
+    if(send(newfd, "Hello world !", 14, 0)==-1){
+        perror("send");
+    }
+    close(newfd);
+    return NULL;
+}
 int main(void)
 {
     int sockfd, newfd; //listen on sock_fd, newfd file descriptor returned by accept after new connection
@@ -87,22 +97,16 @@ int main(void)
 
     printf("server: waiting for connections ... \n");
 
+    pthread_t thread1[backlog];
+    int i=0;
     while(1){//acept loop
         sin_size=sizeof their_addr;
         newfd= accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
 
         inet_ntop(their_addr.ss_family, get_in_address((struct sockaddr *)&their_addr), s , sizeof s);
         printf("server: got connection from %s \n", s);
-        if(fork()==0)
-        {
-            close(sockfd);
-            if(send(newfd, "Hello world !", 14, 0)==-1){
-                perror("send");
-            }
-            close(newfd);
-            exit(0);
-        }
-        close(newfd);
+        pthread_create(&thread1[i%10],NULL,chat,(void *)&newfd);
+        // close(newfd);
     }
     return 0;
 }
