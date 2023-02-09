@@ -10,20 +10,21 @@
 #include <string.h>
 #include <sys/types.h>
 #include <netdb.h>
+
+#include <pthread.h>
 using namespace std;
 #define PORT "4000" // port client will be connecting to
 
 #define MAXDATASIZE 1024 // max number of bytes we can get at once
 
-int sockfd;
+// getting sockaddr for IPv4 or IPv6
 
+int sockfd;
 void sigint_handler(int signum, siginfo_t *info, void *context)
 {
     close(sockfd);
     printf("socket closed");
 }
-
-// getting sockaddr for IPv4 or IPv6
 void *get_in_address(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET)
@@ -34,6 +35,39 @@ void *get_in_address(struct sockaddr *sa)
     // note that here we are type casting the socket address to the IPV6 or IPV4 before obtaining the desired address
 }
 
+void *send1(void *var)
+{
+    string message;
+    int sockfd = *((int *)var);
+    while (1)
+    {
+        getline(cin >> ws, message);
+        if (send(sockfd, message.c_str(), message.length(), 0) == -1)
+        {
+            perror("send :");
+        }
+    }
+    return NULL;
+}
+
+void *recv1(void *var)
+{
+    int numbytes;
+    int sockfd = *((int *)var);
+    char buf[MAXDATASIZE];
+    while (1)
+    {
+        if ((numbytes = recv(sockfd, buf, MAXDATASIZE - 1, 0)) == -1)
+        { // buf receives the message
+            perror("recv : ");
+            exit(1);
+        }
+
+        buf[numbytes] = '\0';
+        printf("client : received '%s' \n", buf);
+    }
+    return NULL;
+}
 int main()
 {
     struct sigaction action;
@@ -47,8 +81,6 @@ int main()
         return 1;
     }
 
-    int numbytes;
-    char buf[MAXDATASIZE];
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
@@ -91,24 +123,13 @@ int main()
     cout << " Client connecting to " << s << "\n";
 
     freeaddrinfo(servinfo);
-    string message;
+    pthread_t thread1, thread2;
+    pthread_create(&thread1, NULL, send1, (void *)&sockfd);
+    pthread_create(&thread1, NULL, recv1, (void *)&sockfd);
     while (1)
     {
-        cout << "Enter message to be sent : \n";
-        getline(cin >> ws, message);
-        if (send(sockfd, message.c_str(), message.length(), 0) == -1)
-        {
-            perror("send :");
-        }
-        if ((numbytes = recv(sockfd, buf, MAXDATASIZE - 1, 0)) == -1)
-        { // buf receives the message
-            perror("recv : ");
-            exit(1);
-        }
-
-        buf[numbytes] = '\0';
-        printf("client : received '%s' \n", buf);
+        sleep(5);
     }
-    close(sockfd);
+
     return 0;
 }

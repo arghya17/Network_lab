@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <bits/stdc++.h>
 #include <signal.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -58,11 +59,22 @@ void *chat(void *var)
             close(sockfd);
             break;
         }
+
         buf[numbytes] = '\0';
         printf("server : received '%s' \n", buf);
-        if (send(newfd, buf, numbytes, 0) == -1)
+    }
+    return NULL;
+}
+void *chat1(void *var)
+{
+    string message;
+    int sockfd = *((int *)var);
+    while (1)
+    {
+        getline(cin >> ws, message);
+        if (send(sockfd, message.c_str(), message.length(), 0) == -1)
         {
-            perror("send : ");
+            perror("send :");
         }
     }
     return NULL;
@@ -73,18 +85,12 @@ int main(void)
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr; // client address information
     socklen_t sin_size;
-    struct sigaction sa;
     int yes = 1;
     char s[INET6_ADDRSTRLEN];
     int rv;
 
     memset(&hints, 0, sizeof hints);
     // memset sets all bits of hints to 0
-
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM; // specifies tcp ip connection
-    hints.ai_flags = AI_PASSIVE;
-    // last flag is interesting AI_Passive fill the address in hints with the local address
 
     struct sigaction action;
     action.sa_sigaction = sigint_handler;
@@ -96,6 +102,10 @@ int main(void)
         perror("sigaction");
         return 1;
     }
+    hints.ai_family = AF_UNSPEC;     // can be either IPV4 or IPv6
+    hints.ai_socktype = SOCK_STREAM; // specifies tcp ip connection
+    hints.ai_flags = AI_PASSIVE;
+    // last flag is interesting AI_Passive fill the address in hints with the local address
 
     rv = getaddrinfo(NULL, PORT, &hints, &servinfo);
     if (rv != 0)
@@ -140,22 +150,20 @@ int main(void)
 
     printf("server: waiting for connections ... \n");
 
-    pthread_t thread1[backlog];
+    pthread_t thread1[backlog * 2];
     int i = 0;
     while (1)
     { // acept loop
         sin_size = sizeof their_addr;
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+
         clientfd[i % backlog] = newfd;
         inet_ntop(their_addr.ss_family, get_in_address((struct sockaddr *)&their_addr), s, sizeof s);
         printf("server: got connection from %s \n", s);
-        pthread_create(&thread1[i % backlog], NULL, chat, (void *)&newfd);
-        i++;
+        pthread_create(&thread1[i % 10], NULL, chat, (void *)&newfd);
+        pthread_create(&thread1[(i + 1) % 10], NULL, chat1, (void *)&newfd);
+        i += 2;
         // close(newfd);
-    }
-    while (1)
-    {
-        sleep(5);
     }
     return 0;
 }
