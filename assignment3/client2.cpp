@@ -63,7 +63,10 @@ void *recv1(void *var)
             perror("recv : ");
             exit(1);
         }
-
+        if (numbytes == 0)
+        {
+            continue;
+        }
         buf[numbytes] = '\0';
         printf("client : received '%s' \n", buf);
     }

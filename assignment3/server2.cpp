@@ -18,8 +18,15 @@ using namespace std;
 #define MAXDATASIZE 1024
 #define backlog 10 // maximum number of connections to be queued up by the server at a time
 
+int num;
+typedef struct args
+{
+    int fd;
+    string buf;
+} args;
 int sockfd;
 int clientfd[backlog];
+pthread_t thread1[backlog * 2];
 void sigint_handler(int signum, siginfo_t *info, void *context)
 {
     close(sockfd);
@@ -28,6 +35,10 @@ void sigint_handler(int signum, siginfo_t *info, void *context)
     {
         close(clientfd[i]);
     }
+    // for (i = 0; i < 2 * backlog; i++)
+    // {
+    //     pthread_cancel(thread1[i]);
+    // }
     printf("socket closed");
     exit(0);
 }
@@ -41,12 +52,30 @@ void *get_in_address(struct sockaddr *sa)
     return &(((struct sockaddr_in6 *)sa)->sin6_addr);
     // note that here we are type casting the socket address to the IPV6 or IPV4 before obtaining the desired address
 }
+void *chat1(void *var);
+// prototype
+void strip_leading_whitespaces(char *str)
+{
+    int i = 0, j = 0;
 
+    while (isspace(str[i]))
+    {
+        i++;
+    }
+
+    while (str[i] != '\0')
+    {
+        str[j++] = str[i++];
+    }
+
+    str[j] = '\0';
+}
 void *chat(void *var)
 {
     int newfd = *((int *)var);
     int numbytes;
     char buf[MAXDATASIZE];
+    pthread_t thread;
 
     while (1)
     {
@@ -63,20 +92,29 @@ void *chat(void *var)
 
         buf[numbytes] = '\0';
         printf("server : received '%s' \n", buf);
+        strip_leading_whitespaces(buf);
+        int p = buf[0] - '0';
+        args m;
+        m.fd = clientfd[p];
+        if (p < 0 && p > 9 && p > num)
+        {
+            char s[] = "Client does not exist ";
+            strcpy(buf, s);
+            m.fd = newfd;
+        }
+
+        m.buf = buf;
+        pthread_create(&thread, NULL, chat1, (void *)&m);
     }
     return NULL;
 }
 void *chat1(void *var)
 {
-    string message;
-    int sockfd = *((int *)var);
-    while (1)
+    int sockfd = ((args *)var)->fd;
+
+    if (send(sockfd, (((args *)var)->buf).c_str(), (((args *)var)->buf).length(), 0) == -1)
     {
-        getline(cin >> ws, message);
-        if (send(sockfd, message.c_str(), message.length(), 0) == -1)
-        {
-            perror("send :");
-        }
+        perror("send :");
     }
     return NULL;
 }
@@ -151,10 +189,10 @@ int main(void)
 
     printf("server: waiting for connections ... \n");
 
-    pthread_t thread1[backlog * 2];
     int i = 0;
+    num = 0;
     while (1)
-    { // accept loop
+    { // acept loop
         sin_size = sizeof their_addr;
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
 
@@ -162,8 +200,11 @@ int main(void)
         inet_ntop(their_addr.ss_family, get_in_address((struct sockaddr *)&their_addr), s, sizeof s);
         printf("server: got connection from %s \n", s);
         pthread_create(&thread1[i % 10], NULL, chat, (void *)&newfd);
-        pthread_create(&thread1[(i + 1) % 10], NULL, chat1, (void *)&newfd);
-        i += 2;
+        if (num < i)
+        {
+            num = i;
+        }
+        i += 1;
         // close(newfd);
     }
     return 0;
