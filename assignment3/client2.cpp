@@ -68,7 +68,7 @@ void *recv1(void *var)
             continue;
         }
         buf[numbytes] = '\0';
-        printf("client : received '%s' \n", buf);
+        printf("received %s \n", buf);
     }
     return NULL;
 }

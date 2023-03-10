@@ -18,7 +18,7 @@ using namespace std;
 #define MAXDATASIZE 1024
 #define backlog 10 // maximum number of connections to be queued up by the server at a time
 
-int num;
+int num = -1;
 typedef struct args
 {
     int fd;
@@ -31,7 +31,7 @@ void sigint_handler(int signum, siginfo_t *info, void *context)
 {
     close(sockfd);
     int i;
-    for (i = 0; i < backlog; i++)
+    for (i = 0; i < num; i++)
     {
         close(clientfd[i]);
     }
@@ -75,6 +75,14 @@ void *chat(void *var)
     int newfd = *((int *)var);
     int numbytes;
     char buf[MAXDATASIZE];
+    int i;
+    for (i = 0; i < backlog; i++)
+    {
+        if (clientfd[i] == newfd)
+        {
+            break;
+        }
+    }
     pthread_t thread;
 
     while (1)
@@ -101,7 +109,9 @@ void *chat(void *var)
             char s[] = "Client does not exist ";
             strcpy(buf, s);
             m.fd = newfd;
+            continue;
         }
+        buf[0] = (char)(i + 48);
 
         m.buf = buf;
         pthread_create(&thread, NULL, chat1, (void *)&m);
@@ -200,6 +210,8 @@ int main(void)
         inet_ntop(their_addr.ss_family, get_in_address((struct sockaddr *)&their_addr), s, sizeof s);
         printf("server: got connection from %s \n", s);
         pthread_create(&thread1[i % 10], NULL, chat, (void *)&newfd);
+        string buf = "you are client " + to_string(i);
+        send(newfd, buf.c_str(), buf.length(), 0);
         if (num < i)
         {
             num = i;
