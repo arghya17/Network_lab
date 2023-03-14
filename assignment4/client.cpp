@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
-#include <ctime>
 #include <ctype.h>
 #include <stdarg.h>
 #include <string>
@@ -14,7 +13,7 @@
 #include <thread>
 #include <bits/stdc++.h>
 using namespace std;
-
+using namespace std::chrono;
 const int MAX = 26;
 
 typedef struct varargs
@@ -487,9 +486,10 @@ int main(int argc, char *argv[])
     time_t recvtime;
     for (int i = 0; i < numpackets; i++)
     {
+        auto offset = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
         s = printRandomString(p);
         char format[] = "HLCs";
-        packetsize = pack(buffer, format, (int16_t)(i), (int32_t)std::time(nullptr), (char)ttl, s.c_str());
+        packetsize = pack(buffer, format, (int16_t)(i), (int32_t)(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - offset), (char)ttl, s.c_str());
         buffer[packetsize] = '\0';
         // printf("%s", buffer);
         // cout << buffer << endl;
@@ -499,7 +499,7 @@ int main(int argc, char *argv[])
         n = recvfrom(sockfd, (char *)buffer, packetsize,
                      0, (struct sockaddr *)&servaddr,
                      &len);
-        recvtime = std::time(nullptr);
+        recvtime = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - offset;
         // char format[] = "HLCs\0";
         char p[1024];
         // int16_t i;
