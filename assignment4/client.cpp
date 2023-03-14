@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <ctime>
 #include <ctype.h>
 #include <stdarg.h>
 #include <string>
@@ -488,7 +489,7 @@ int main(int argc, char *argv[])
     {
         s = printRandomString(p);
         char format[] = "HLCs";
-        packetsize = pack(buffer, format, (int16_t)(i), (int32_t)time(NULL), (char)ttl, s.c_str());
+        packetsize = pack(buffer, format, (int16_t)(i), (int32_t)std::time(nullptr), (char)ttl, s.c_str());
         buffer[packetsize] = '\0';
         // printf("%s", buffer);
         // cout << buffer << endl;
@@ -498,7 +499,7 @@ int main(int argc, char *argv[])
         n = recvfrom(sockfd, (char *)buffer, packetsize,
                      0, (struct sockaddr *)&servaddr,
                      &len);
-        recvtime = time(NULL);
+        recvtime = std::time(nullptr);
         // char format[] = "HLCs\0";
         char p[1024];
         // int16_t i;
