@@ -11,6 +11,7 @@
 #include <string>
 #include <pthread.h>
 #include <thread>
+#include <bits/stdc++.h>
 using namespace std;
 
 const int MAX = 26;
@@ -421,7 +422,7 @@ void *receive(void *args)
     varargs *abc = (varargs *)args;
     int sockfd = abc->sockfd;
     int packetsize = abc->packetsize;
-    struct sockaddr_in *servaddr = abc->servaddr;
+    struct sockaddr_in servaddr;
     unsigned char buffer[packetsize];
     int n;
     socklen_t len;
@@ -430,17 +431,18 @@ void *receive(void *args)
     while (1)
     {
         n = recvfrom(sockfd, (char *)buffer, packetsize,
-                     0, (struct sockaddr *)servaddr,
+                     0, (struct sockaddr *)&servaddr,
                      &len);
         recvtime = time(NULL);
-        char format[] = "HLCs";
+        char format[] = "HLCs\0";
         char p[1024];
         int16_t i;
         int32_t starttime;
         char c;
         unpack(buffer, format, &i, &starttime, &c, &p);
         double rtt = recvtime - starttime;
-        printf("%d \t\t %c \t %f \n", i, c, rtt);
+        // printf("%d \t\t %c \t %f \n", i, c, rtt);
+        cout << i << "\t\t" << c << "\t" << rtt << "\n";
     }
 }
 int main(int argc, char *argv[])
@@ -449,7 +451,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in servaddr;
     if (argc < 6)
     {
-        printf("Wrong cli arguments");
+        printf("Wrong cli arguments: <serverip> <serverport> <p> <ttl> <numpackets>");
         exit(1);
     }
     char *serverip = argv[1];
@@ -478,19 +480,36 @@ int main(int argc, char *argv[])
     abc.sockfd = sockfd;
     abc.packetsize = 8 + p;
     abc.servaddr = &servaddr;
-    pthread_t tid;
-    pthread_create(&tid, NULL, receive, (void *)&abc);
+    // pthread_t tid;
+    // pthread_create(&tid, NULL, receive, (void *)&abc);
+    printf("Sequence Number \t TTL \t RTT \n");
+    time_t recvtime;
     for (int i = 0; i < numpackets; i++)
     {
         s = printRandomString(p);
         char format[] = "HLCs";
-        packetsize = pack(buffer, format, (int16_t)i, (int32_t)time(NULL), (char)ttl, s.c_str());
+        packetsize = pack(buffer, format, (int16_t)(i), (int32_t)time(NULL), (char)ttl, s.c_str());
+        buffer[packetsize] = '\0';
+        // printf("%s", buffer);
+        // cout << buffer << endl;
         sendto(sockfd, buffer, packetsize,
                0, (const struct sockaddr *)&servaddr,
                sizeof(servaddr));
-        // printf("%d\n", bytesent);
+        n = recvfrom(sockfd, (char *)buffer, packetsize,
+                     0, (struct sockaddr *)&servaddr,
+                     &len);
+        recvtime = time(NULL);
+        // char format[] = "HLCs\0";
+        char p[1024];
+        // int16_t i;
+        int32_t starttime;
+        char c;
+        unpack(buffer, format, &i, &starttime, &c, &p);
+        double rtt = recvtime - starttime;
+        // printf("%d \t\t %c \t %f \n", i, c, rtt);
+        cout << i << "\t\t" << (int)c << "\t" << rtt << "\n";
     }
-    pthread_join(tid, NULL);
+    // pthread_join(tid, NULL);
     // close the socket
     close(sockfd);
 

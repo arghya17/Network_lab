@@ -7,7 +7,11 @@
 #include <string.h>
 #include <stdarg.h>
 #include <string>
+#include <bits/stdc++.h>
+
 // #define SERVER_PORT 12345
+struct sockaddr_in cliaddr;
+struct sockaddr_in cli1addr;
 #define BUFFER_SIZE 2048
 #define pack754_32(f) (pack754((f), 32, 8))
 #define pack754_64(f) (pack754((f), 64, 11))
@@ -392,7 +396,7 @@ int main(int argc, char *argv[])
         printf("Enter correct command line arguments ");
         exit(1);
     }
-    struct sockaddr_in servaddr, cliaddr;
+    struct sockaddr_in servaddr;
     unsigned char buffer[BUFFER_SIZE];
     socklen_t len;
     ssize_t n;
@@ -410,8 +414,8 @@ int main(int argc, char *argv[])
     bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 
     // receive datagrams from the client and send responses
-    char format[] = "HLCs";
-    char p[1024];
+    char format[] = "HLCs\0";
+    char p[400];
     int16_t i;
     int32_t starttime;
     char c;
@@ -420,11 +424,11 @@ int main(int argc, char *argv[])
     {
         len = sizeof(cliaddr);
         n = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&cliaddr, &len);
-        unpack(buffer, format, &i, &starttime, &c, &p);
-        c--;
-        packetsize = pack(buffer, format, (int16_t)i, starttime, c, p);
-        sendto(sockfd, buffer, n, 0, (struct sockaddr *)&cliaddr, len);
-        printf("%d packet received", i);
+        cli1addr = cliaddr;
+        buffer[6]--;
+        sendto(sockfd, buffer, n + 1, 0, (struct sockaddr *)&cliaddr, len);
+        // printf("%d packet received", (int32_t)i);
+        std::cout << "Packet received " << i << "\n";
     }
 
     return 0;
