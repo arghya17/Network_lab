@@ -486,10 +486,10 @@ int main(int argc, char *argv[])
     time_t recvtime;
     for (int i = 0; i < numpackets; i++)
     {
-        auto offset = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+        auto offset = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
         s = printRandomString(p);
         char format[] = "HLCs";
-        packetsize = pack(buffer, format, (int16_t)(i), (int32_t)(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - offset), (char)ttl, s.c_str());
+        packetsize = pack(buffer, format, (int16_t)(i), (int32_t)(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count() - offset), (char)ttl, s.c_str());
         buffer[packetsize] = '\0';
         // printf("%s", buffer);
         // cout << buffer << endl;
@@ -499,16 +499,16 @@ int main(int argc, char *argv[])
         n = recvfrom(sockfd, (char *)buffer, packetsize,
                      0, (struct sockaddr *)&servaddr,
                      &len);
-        recvtime = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - offset;
+        recvtime = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count() - offset;
         // char format[] = "HLCs\0";
         char p[1024];
         // int16_t i;
         int32_t starttime;
         char c;
         unpack(buffer, format, &i, &starttime, &c, &p);
-        double rtt = recvtime - starttime;
+        int rtt = recvtime - starttime;
         // printf("%d \t\t %c \t %f \n", i, c, rtt);
-        cout << i << "\t\t" << (int)c << "\t" << rtt << "\n";
+        cout << fixed << "\t" << i << " \t\t  " << (int)c << "\t " << (int)rtt << "\n";
     }
     // pthread_join(tid, NULL);
     // close the socket
