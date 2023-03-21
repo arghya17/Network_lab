@@ -489,19 +489,21 @@ int main(int argc, char *argv[])
     printf("Sequence Number \t Pay \t RTT \n");
     time_t recvtime;
     fstream afile;
-    afile.open(outfile, ios::out | ios::app);
+    afile.open(outfile, ios::out);
     // afile << "seq"
     //       << "\t"
     //       << "pay"
     //       << "\t"
     //       << "rtt"
     //       << "\n";
+    int crtt = 0;
     for (int i = 0; i < numpackets; i++)
     {
         c = ttl;
         if ((i) % 5 == 0)
         {
             p += 100;
+            crtt = 0;
         }
         auto offset = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
 
@@ -512,6 +514,7 @@ int main(int argc, char *argv[])
                 s = printRandomString(p);
                 char format[] = "HLCs";
                 packetsize = pack(buffer, format, (int16_t)(i), (int32_t)(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count() - offset), (char)ttl, s.c_str());
+                cout << buffer;
                 buffer[packetsize + 1] = '\0';
             }
             // printf("%s", buffer);
@@ -534,7 +537,12 @@ int main(int argc, char *argv[])
                 int rtt = recvtime - starttime;
                 // printf("%d \t\t %c \t %f \n", i, c, rtt);
                 cout << fixed << "\t" << i << " \t\t  " << p << "\t " << (int)rtt << "\n";
-                afile << p << "\t" << (int)rtt << "\n";
+                crtt += rtt;
+                // cout << crtt << " " << p << endl;
+                if (i % 5 == 0)
+                {
+                    afile << ttl << "\t" << p << "\t" << crtt << "\n";
+                }
             }
         }
     } // afile << "seq"
