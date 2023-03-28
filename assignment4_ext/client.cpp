@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
     char *serverip = argv[1];
     int p = 0;
     int ttl = atoi(argv[3]);
-    int numpackets = 50;
+    int numpackets = 500;
     char *outfile = argv[4];
     socklen_t len;
     ssize_t n;
@@ -500,7 +500,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < numpackets; i++)
     {
         c = ttl;
-        if ((i) % 5 == 0)
+        if ((i) % 50 == 0)
         {
             p += 100;
             crtt = 0;
@@ -537,12 +537,8 @@ int main(int argc, char *argv[])
                 int rtt = recvtime - starttime;
                 // printf("%d \t\t %c \t %f \n", i, c, rtt);
                 cout << fixed << "\t" << i << " \t\t  " << p << "\t " << (int)rtt << "\n";
-                crtt += rtt;
-                // cout << crtt << " " << p << endl;
-                if (i % 5 == 0)
-                {
-                    afile << ttl << "\t" << p << "\t" << crtt << "\n";
-                }
+                afile << ttl << "\t"
+                      << p << "\t" << (int)rtt << "\n";
             }
         }
     } // afile << "seq"
